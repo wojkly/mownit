@@ -1,0 +1,132 @@
+---
+title: "MOWNIT - Laboratorium 5"
+output: html_notebook
+---
+
+Wojciech Klyszejko
+
+```{r}
+library("ggplot2");
+```
+
+Importing data from csv file
+```{r}
+data = read.csv("data_c.csv")
+```
+
+```{r}
+head(data)
+```
+
+
+Change column name
+```{r}
+colnames(data)[2] = "type"
+```
+
+Change column type and values
+```{r}
+data$type = as.character(data$type)
+data$type[data$type == "b"] <- "blas"
+data$type[data$type == "n"] <- "naive"
+data$type[data$type == "i"] <- "improved"
+data$type = as.factor(data$type)
+```
+
+```{r}
+head(data)
+```
+
+Group by length and operation type, add mean
+```{r}
+data_grouped = aggregate( time ~ length:type, data = data, FUN = mean)
+```
+
+Add standard deviation column
+```{r}
+data_grouped$std = aggregate( time ~ length:type, data = data, FUN = sd )$time
+```
+
+Plot results with error bars
+```{r}
+ggplot(data_grouped, aes(length,time)) + 
+  geom_errorbar(aes(ymin=time - std, ymax=time + std)) + 
+  geom_point(aes(color = type)) +
+         labs(title ="Comparison between different types of square matrix multiplication" )
+```
+
+Aproximating naive algorithm by 3rd degree polynomial
+```{r}
+aprox_naive = data_grouped[data_grouped$type == "naive",]
+```
+
+```{r}
+fit_naive = lm(time ~ poly(length, 3, raw=TRUE), data=aprox_naive)
+fit_naive
+```
+
+```{r}
+ggplot(aprox_naive,aes(length,time)) + geom_point(color = "red") +
+         labs(title ="Naive matrix multiplication")
+```
+
+```{r}
+points_naive = data.frame(length = seq(0,1000, length.out=250))
+```
+
+```{r}
+points_naive$time = predict(fit_naive, points_naive)
+last_plot() + geom_line(data=points_naive, aes(length,time), color = "blue")+
+         labs(title ="Aproximating naive matrix multiplication with a 3rd degree polynomial")
+```
+
+Aproximating improved algorithm by 3rd degree polynomial
+```{r}
+aprox_improved = data_grouped[data_grouped$type == "improved",]
+```
+
+```{r}
+fit_improved = lm(time ~ poly(length, 3, raw=TRUE), data=aprox_improved)
+fit_improved
+```
+
+```{r}
+ggplot(aprox_improved,aes(length,time)) + geom_point(color = "red") +
+         labs(title ="Improved matrix multiplication")
+```
+
+```{r}
+points_improved = data.frame(length = seq(0,1000, length.out=250))
+```
+
+```{r}
+points_improved$time = predict(fit_improved, points_improved)
+last_plot() + geom_line(data=points_improved, aes(length,time), color = "blue")+
+         labs(title ="Aproximating improved matrix multiplication with a 3rd degree polynomial")
+```
+
+Aproximating BLAS algorithm by 2nd degree polynomial
+```{r}
+aprox_blas = data_grouped[data_grouped$type == "blas",]
+```
+
+```{r}
+fit_blas = lm(time ~ poly(length, 2, raw=TRUE), data=aprox_blas)
+fit_blas
+```
+
+```{r}
+ggplot(aprox_blas,aes(length,time)) + geom_point(color = "red") +
+         labs(title ="BLAS matrix multiplication")
+```
+
+```{r}
+points_blas = data.frame(length = seq(0,1000, length.out=250))
+```
+
+```{r}
+points_blas$time = predict(fit_blas, points_blas)
+last_plot() + 
+  geom_line(data=points_blas, aes(length,time), color = "blue") +
+         labs(title ="Aproximating BLAS matrix multiplication with a 2nd degree polynomial")
+```
